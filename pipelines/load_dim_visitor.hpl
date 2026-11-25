@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pipeline>
+  <info>
+    <name>load_dim_visitor</name>
+    <name_sync_with_filename>Y</name_sync_with_filename>
+    <description>Load distinct RetailRocket visitors into public.dim_visitor.</description>
+    <extended_description>Reads visitor IDs from events.csv as integers, sorts and deduplicates them, then inserts missing visitors by visitor_id. Existing visitor rows are left unchanged so the pipeline is safe to rerun.</extended_description>
+    <pipeline_version/>
+    <pipeline_type>Normal</pipeline_type>
+    <parameters>
+    </parameters>
+    <capture_transform_performance>N</capture_transform_performance>
+    <transform_performance_capturing_delay>1000</transform_performance_capturing_delay>
+    <transform_performance_capturing_size_limit>100</transform_performance_capturing_size_limit>
+    <created_user>-</created_user>
+    <created_date>2026/11/25 00:00:00.000</created_date>
+    <modified_user>-</modified_user>
+    <modified_date>2026/11/25 00:00:00.000</modified_date>
+  </info>
+  <notepads>
+  </notepads>
+  <order>
+    <hop>
+      <from>CSV Visitor IDs</from>
+      <to>Rename Visitor ID</to>
+      <enabled>Y</enabled>
+    </hop>
+    <hop>
+      <from>Rename Visitor ID</from>
+      <to>Sort Visitor IDs</to>
+      <enabled>Y</enabled>
+    </hop>
+    <hop>
+      <from>Sort Visitor IDs</from>
+      <to>Keep One Row per Visitor</to>
+      <enabled>Y</enabled>
+    </hop>
+    <hop>
+      <from>Keep One Row per Visitor</from>
+      <to>Insert Missing Visitors</to>
+      <enabled>Y</enabled>
+    </hop>
+  </order>
+  <transform>
+    <name>CSV Visitor IDs</name>
+    <type>CSVInput</type>
+    <description>Read visitorid from events.csv as a 64-bit integer.</description>
+    <distribute>Y</distribute>
+    <custom_distribution/>
+    <copies>1</copies>
+    <partitioning>
+      <method>none</method>
+      <schema_name/>
+    </partitioning>
+    <filename>${PROJECT_HOME}/data/events.csv</filename>
+    <filename_field/>
+    <rownum_field/>
+    <include_filename>N</include_filename>
+    <separator>,</separator>
+    <enclosure>"</enclosure>
+    <header>Y</header>
+    <buffer_size>50000</buffer_size>
+    <schemaDefinition/>
+    <lazy_conversion>N</lazy_conversion>
+    <add_filename_result>N</add_filename_result>
+    <parallel>N</parallel>
+    <newline_possible>N</newline_possible>
+    <encoding>UTF-8</encoding>
+    <fields>
+      <field>
+        <name>visitorid</name>
+        <type>Integer</type>
+        <format/>
+        <currency/>
+        <decimal>.</decimal>
+        <group>,</group>
+        <length>-1</length>
+        <precision>-1</precision>
+        <trim_type>both</trim_type>
+      </field>
+    </fields>
+    <attributes/>
+    <GUI>
+      <xloc>96</xloc>
+      <yloc>160</yloc>
+    </GUI>
+  </transform>
+  <transform>
+    <name>Rename Visitor ID</name>
+    <type>SelectValues</type>
+    <description>Rename the source ID to the warehouse natural key.</description>
+    <distribute>Y</distribute>
+    <custom_distribution/>
+    <copies>1</copies>
+    <partitioning>
+      <method>none</method>
+      <schema_name/>
+    </partitioning>
+    <fields>
+      <field>
+        <name>visitorid</name>
+        <rename>visitor_id</rename>
+        <length>-2</length>
+        <precision>-2</precision>
+      </field>
+      <select_unspecified>N</select_unspecified>
+    </fields>
+    <attributes/>
+    <GUI>
+      <xloc>288</xloc>
+      <yloc>160</yloc>
+    </GUI>
+  </transform>
+  <transform>
+    <name>Sort Visitor IDs</name>
+    <type>SortRows</type>
+    <description>Sort visitor IDs before streaming deduplication.</description>
+    <distribute>Y</distribute>
+    <custom_distribution/>
+    <copies>1</copies>
+    <partitioning>
+      <method>none</method>
+      <schema_name/>
+    </partitioning>
+    <directory>${java.io.tmpdir}</directory>
+    <prefix>retailrocket_visitors</prefix>
+    <sort_size>5000</sort_size>
+    <free_memory/>
+    <compress>N</compress>
+    <compress_variable/>
+    <unique_rows>N</unique_rows>
+    <fields>
+      <field>
+        <name>visitor_id</name>
+        <ascending>Y</ascending>
+        <case_sensitive>N</case_sensitive>
+        <collator_enabled>N</collator_enabled>
+        <collator_strength>0</collator_strength>
+        <presorted>N</presorted>
+      </field>
+    </fields>
+    <attributes/>
+    <GUI>
+      <xloc>480</xloc>
+      <yloc>160</yloc>
+    </GUI>
+  </transform>
+  <transform>
+    <name>Keep One Row per Visitor</name>
+    <type>Unique</type>
+    <description>Keep one row per distinct visitor_id.</description>
+    <distribute>Y</distribute>
+    <custom_distribution/>
+    <copies>1</copies>
+    <partitioning>
+      <method>none</method>
+      <schema_name/>
+    </partitioning>
+    <count_rows>N</count_rows>
+    <count_field/>
+    <reject_duplicate_row>N</reject_duplicate_row>
+    <error_description/>
+    <fields>
+      <field>
+        <name>visitor_id</name>
+        <case_insensitive>N</case_insensitive>
+      </field>
+    </fields>
+    <attributes/>
+    <GUI>
+      <xloc>672</xloc>
+      <yloc>160</yloc>
+    </GUI>
+  </transform>
+  <transform>
+    <name>Insert Missing Visitors</name>
+    <type>InsertUpdate</type>
+    <description>Insert visitors that are not already present, matching on visitor_id; leave existing rows unchanged.</description>
+    <distribute>Y</distribute>
+    <custom_distribution/>
+    <copies>1</copies>
+    <partitioning>
+      <method>none</method>
+      <schema_name/>
+    </partitioning>
+    <commit>1000</commit>
+    <connection>retailrocket_dw_conn</connection>
+    <lookup>
+      <key>
+        <condition>=</condition>
+        <field>visitor_id</field>
+        <name>visitor_id</name>
+        <name2/>
+      </key>
+      <schema>public</schema>
+      <table>dim_visitor</table>
+      <value>
+        <name>visitor_id</name>
+        <rename>visitor_id</rename>
+        <update>N</update>
+      </value>
+    </lookup>
+    <update_bypassed>N</update_bypassed>
+    <attributes/>
+    <GUI>
+      <xloc>864</xloc>
+      <yloc>160</yloc>
+    </GUI>
+  </transform>
+  <transform_error_handling>
+  </transform_error_handling>
+  <attributes/>
+</pipeline>
