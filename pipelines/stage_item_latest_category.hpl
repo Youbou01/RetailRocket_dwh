@@ -62,10 +62,191 @@
     </hop>
     <hop>
       <from>Keep Latest Category per Item</from>
+      <to>Select Latest Category Fields</to>
+      <enabled>Y</enabled>
+    </hop>
+    <hop>
+      <from>Select Latest Category Fields</from>
       <to>Write Latest Item Categories</to>
       <enabled>Y</enabled>
     </hop>
   </order>
+  <transform>
+    <name>Append Category Streams</name>
+    <type>Append</type>
+    <description>Combine normalized category records from both source files.</description>
+    <distribute>Y</distribute>
+    <custom_distribution/>
+    <copies>1</copies>
+    <partitioning>
+      <method>none</method>
+      <schema_name/>
+    </partitioning>
+    <head_name>Normalize Categories Part 2</head_name>
+    <tail_name>Normalize Categories Part 1</tail_name>
+    <attributes/>
+    <GUI>
+      <xloc>704</xloc>
+      <yloc>192</yloc>
+    </GUI>
+  </transform>
+  <transform>
+    <name>Keep Categories Part 1</name>
+    <type>FilterRows</type>
+    <description>Keep only categoryid records from property history part 1.</description>
+    <distribute>Y</distribute>
+    <custom_distribution/>
+    <copies>1</copies>
+    <partitioning>
+      <method>none</method>
+      <schema_name/>
+    </partitioning>
+    <compare>
+      <condition>
+        <conditions>
+</conditions>
+        <function>=</function>
+        <leftvalue>property</leftvalue>
+        <negated>N</negated>
+        <operator>-</operator>
+        <value>
+          <isnull>N</isnull>
+          <length>-1</length>
+          <name>constant</name>
+          <precision>-1</precision>
+          <text>categoryid</text>
+          <type>String</type>
+        </value>
+      </condition>
+    </compare>
+    <send_true_to>Normalize Categories Part 1</send_true_to>
+    <attributes/>
+    <GUI>
+      <xloc>288</xloc>
+      <yloc>96</yloc>
+    </GUI>
+  </transform>
+  <transform>
+    <name>Keep Categories Part 2</name>
+    <type>FilterRows</type>
+    <description>Keep only categoryid records from property history part 2.</description>
+    <distribute>Y</distribute>
+    <custom_distribution/>
+    <copies>1</copies>
+    <partitioning>
+      <method>none</method>
+      <schema_name/>
+    </partitioning>
+    <compare>
+      <condition>
+        <conditions>
+</conditions>
+        <function>=</function>
+        <leftvalue>property</leftvalue>
+        <negated>N</negated>
+        <operator>-</operator>
+        <value>
+          <isnull>N</isnull>
+          <length>-1</length>
+          <name>constant</name>
+          <precision>-1</precision>
+          <text>categoryid</text>
+          <type>String</type>
+        </value>
+      </condition>
+    </compare>
+    <send_true_to>Normalize Categories Part 2</send_true_to>
+    <attributes/>
+    <GUI>
+      <xloc>288</xloc>
+      <yloc>288</yloc>
+    </GUI>
+  </transform>
+  <transform>
+    <name>Keep Latest Category per Item</name>
+    <type>Unique</type>
+    <description>Keep the first row per sorted item, which is its latest category assignment.</description>
+    <distribute>Y</distribute>
+    <custom_distribution/>
+    <copies>1</copies>
+    <partitioning>
+      <method>none</method>
+      <schema_name/>
+    </partitioning>
+    <count_rows>N</count_rows>
+    <fields>
+      <field>
+        <case_insensitive>N</case_insensitive>
+        <name>itemid</name>
+      </field>
+    </fields>
+    <reject_duplicate_row>N</reject_duplicate_row>
+    <attributes/>
+    <GUI>
+      <xloc>1120</xloc>
+      <yloc>272</yloc>
+    </GUI>
+  </transform>
+  <transform>
+    <name>Normalize Categories Part 1</name>
+    <type>SelectValues</type>
+    <description>Convert the category value from text to an integer while preserving source fields.</description>
+    <distribute>Y</distribute>
+    <custom_distribution/>
+    <copies>1</copies>
+    <partitioning>
+      <method>none</method>
+      <schema_name/>
+    </partitioning>
+    <fields>
+      <meta>
+        <date_format_lenient>N</date_format_lenient>
+        <length>-2</length>
+        <lenient_string_to_number>N</lenient_string_to_number>
+        <name>value</name>
+        <precision>-2</precision>
+        <rename>value</rename>
+        <storage_type>normal</storage_type>
+        <type>Integer</type>
+      </meta>
+      <select_unspecified>N</select_unspecified>
+    </fields>
+    <attributes/>
+    <GUI>
+      <xloc>496</xloc>
+      <yloc>96</yloc>
+    </GUI>
+  </transform>
+  <transform>
+    <name>Normalize Categories Part 2</name>
+    <type>SelectValues</type>
+    <description>Convert the category value from text to an integer while preserving source fields.</description>
+    <distribute>Y</distribute>
+    <custom_distribution/>
+    <copies>1</copies>
+    <partitioning>
+      <method>none</method>
+      <schema_name/>
+    </partitioning>
+    <fields>
+      <meta>
+        <date_format_lenient>N</date_format_lenient>
+        <length>-2</length>
+        <lenient_string_to_number>N</lenient_string_to_number>
+        <name>value</name>
+        <precision>-2</precision>
+        <rename>value</rename>
+        <storage_type>normal</storage_type>
+        <type>Integer</type>
+      </meta>
+      <select_unspecified>N</select_unspecified>
+    </fields>
+    <attributes/>
+    <GUI>
+      <xloc>496</xloc>
+      <yloc>288</yloc>
+    </GUI>
+  </transform>
   <transform>
     <name>Read Properties Part 1</name>
     <type>CSVInput</type>
@@ -73,20 +254,75 @@
     <distribute>Y</distribute>
     <custom_distribution/>
     <copies>1</copies>
-    <partitioning><method>none</method><schema_name/></partitioning>
+    <partitioning>
+      <method>none</method>
+      <schema_name/>
+    </partitioning>
     <filename>${PROJECT_HOME}/data/item_properties_part1.csv</filename>
-    <filename_field/><rownum_field/><include_filename>N</include_filename>
-    <separator>,</separator><enclosure>"</enclosure><header>Y</header><buffer_size>50000</buffer_size>
-    <schemaDefinition/><lazy_conversion>N</lazy_conversion><add_filename_result>N</add_filename_result>
-    <parallel>N</parallel><newline_possible>N</newline_possible><encoding>UTF-8</encoding>
+    <filename_field/>
+    <rownum_field/>
+    <include_filename>N</include_filename>
+    <separator>,</separator>
+    <enclosure>"</enclosure>
+    <header>Y</header>
+    <buffer_size>50000</buffer_size>
+    <schemaDefinition/>
+    <lazy_conversion>N</lazy_conversion>
+    <add_filename_result>N</add_filename_result>
+    <parallel>N</parallel>
+    <newline_possible>N</newline_possible>
+    <encoding>UTF-8</encoding>
     <fields>
-      <field><name>timestamp</name><type>Integer</type><format/><currency/><decimal>.</decimal><group>,</group><length>-1</length><precision>-1</precision><trim_type>both</trim_type></field>
-      <field><name>itemid</name><type>Integer</type><format/><currency/><decimal>.</decimal><group>,</group><length>-1</length><precision>-1</precision><trim_type>both</trim_type></field>
-      <field><name>property</name><type>String</type><format/><currency/><decimal/><group/><length>-1</length><precision>-1</precision><trim_type>both</trim_type></field>
-      <field><name>value</name><type>String</type><format/><currency/><decimal/><group/><length>-1</length><precision>-1</precision><trim_type>both</trim_type></field>
+      <field>
+        <name>timestamp</name>
+        <type>Integer</type>
+        <format/>
+        <currency/>
+        <decimal>.</decimal>
+        <group>,</group>
+        <length>-1</length>
+        <precision>-1</precision>
+        <trim_type>both</trim_type>
+      </field>
+      <field>
+        <name>itemid</name>
+        <type>Integer</type>
+        <format/>
+        <currency/>
+        <decimal>.</decimal>
+        <group>,</group>
+        <length>-1</length>
+        <precision>-1</precision>
+        <trim_type>both</trim_type>
+      </field>
+      <field>
+        <name>property</name>
+        <type>String</type>
+        <format/>
+        <currency/>
+        <decimal/>
+        <group/>
+        <length>-1</length>
+        <precision>-1</precision>
+        <trim_type>both</trim_type>
+      </field>
+      <field>
+        <name>value</name>
+        <type>String</type>
+        <format/>
+        <currency/>
+        <decimal/>
+        <group/>
+        <length>-1</length>
+        <precision>-1</precision>
+        <trim_type>both</trim_type>
+      </field>
     </fields>
     <attributes/>
-    <GUI><xloc>80</xloc><yloc>96</yloc></GUI>
+    <GUI>
+      <xloc>80</xloc>
+      <yloc>96</yloc>
+    </GUI>
   </transform>
   <transform>
     <name>Read Properties Part 2</name>
@@ -95,124 +331,241 @@
     <distribute>Y</distribute>
     <custom_distribution/>
     <copies>1</copies>
-    <partitioning><method>none</method><schema_name/></partitioning>
+    <partitioning>
+      <method>none</method>
+      <schema_name/>
+    </partitioning>
     <filename>${PROJECT_HOME}/data/item_properties_part2.csv</filename>
-    <filename_field/><rownum_field/><include_filename>N</include_filename>
-    <separator>,</separator><enclosure>"</enclosure><header>Y</header><buffer_size>50000</buffer_size>
-    <schemaDefinition/><lazy_conversion>N</lazy_conversion><add_filename_result>N</add_filename_result>
-    <parallel>N</parallel><newline_possible>N</newline_possible><encoding>UTF-8</encoding>
+    <filename_field/>
+    <rownum_field/>
+    <include_filename>N</include_filename>
+    <separator>,</separator>
+    <enclosure>"</enclosure>
+    <header>Y</header>
+    <buffer_size>50000</buffer_size>
+    <schemaDefinition/>
+    <lazy_conversion>N</lazy_conversion>
+    <add_filename_result>N</add_filename_result>
+    <parallel>N</parallel>
+    <newline_possible>N</newline_possible>
+    <encoding>UTF-8</encoding>
     <fields>
-      <field><name>timestamp</name><type>Integer</type><format/><currency/><decimal>.</decimal><group>,</group><length>-1</length><precision>-1</precision><trim_type>both</trim_type></field>
-      <field><name>itemid</name><type>Integer</type><format/><currency/><decimal>.</decimal><group>,</group><length>-1</length><precision>-1</precision><trim_type>both</trim_type></field>
-      <field><name>property</name><type>String</type><format/><currency/><decimal/><group/><length>-1</length><precision>-1</precision><trim_type>both</trim_type></field>
-      <field><name>value</name><type>String</type><format/><currency/><decimal/><group/><length>-1</length><precision>-1</precision><trim_type>both</trim_type></field>
+      <field>
+        <name>timestamp</name>
+        <type>Integer</type>
+        <format/>
+        <currency/>
+        <decimal>.</decimal>
+        <group>,</group>
+        <length>-1</length>
+        <precision>-1</precision>
+        <trim_type>both</trim_type>
+      </field>
+      <field>
+        <name>itemid</name>
+        <type>Integer</type>
+        <format/>
+        <currency/>
+        <decimal>.</decimal>
+        <group>,</group>
+        <length>-1</length>
+        <precision>-1</precision>
+        <trim_type>both</trim_type>
+      </field>
+      <field>
+        <name>property</name>
+        <type>String</type>
+        <format/>
+        <currency/>
+        <decimal/>
+        <group/>
+        <length>-1</length>
+        <precision>-1</precision>
+        <trim_type>both</trim_type>
+      </field>
+      <field>
+        <name>value</name>
+        <type>String</type>
+        <format/>
+        <currency/>
+        <decimal/>
+        <group/>
+        <length>-1</length>
+        <precision>-1</precision>
+        <trim_type>both</trim_type>
+      </field>
     </fields>
     <attributes/>
-    <GUI><xloc>80</xloc><yloc>288</yloc></GUI>
-  </transform>
-  <transform>
-    <name>Keep Categories Part 1</name>
-    <type>FilterRows</type>
-    <description>Keep only categoryid records from property history part 1.</description>
-    <distribute>Y</distribute><custom_distribution/><copies>1</copies>
-    <partitioning><method>none</method><schema_name/></partitioning>
-    <send_true_to>Normalize Categories Part 1</send_true_to><send_false_to/>
-    <compare><condition><negated>N</negated><leftvalue>property</leftvalue><function>=</function><rightvalue/><value><name>constant</name><type>String</type><text>categoryid</text><length>-1</length><precision>-1</precision><isnull>N</isnull><mask/></value></condition></compare>
-    <attributes/>
-    <GUI><xloc>288</xloc><yloc>96</yloc></GUI>
-  </transform>
-  <transform>
-    <name>Keep Categories Part 2</name>
-    <type>FilterRows</type>
-    <description>Keep only categoryid records from property history part 2.</description>
-    <distribute>Y</distribute><custom_distribution/><copies>1</copies>
-    <partitioning><method>none</method><schema_name/></partitioning>
-    <send_true_to>Normalize Categories Part 2</send_true_to><send_false_to/>
-    <compare><condition><negated>N</negated><leftvalue>property</leftvalue><function>=</function><rightvalue/><value><name>constant</name><type>String</type><text>categoryid</text><length>-1</length><precision>-1</precision><isnull>N</isnull><mask/></value></condition></compare>
-    <attributes/>
-    <GUI><xloc>288</xloc><yloc>288</yloc></GUI>
-  </transform>
-  <transform>
-    <name>Normalize Categories Part 1</name>
-    <type>SelectValues</type>
-    <description>Keep the item, category timestamp and integer category ID from part 1.</description>
-    <distribute>Y</distribute><custom_distribution/><copies>1</copies>
-    <partitioning><method>none</method><schema_name/></partitioning>
-    <fields>
-      <field><name>itemid</name><rename>item_id</rename><length>-2</length><precision>-2</precision></field>
-      <field><name>timestamp</name><rename>category_timestamp</rename><length>-2</length><precision>-2</precision></field>
-      <meta><name>value</name><rename>category_id</rename><type>Integer</type><length>-2</length><precision>-2</precision><conversion_mask/><date_format_lenient>false</date_format_lenient><date_format_locale/><date_format_timezone/><lenient_string_to_number>false</lenient_string_to_number><encoding/><decimal_symbol/><grouping_symbol/><currency_symbol/><storage_type>normal</storage_type></meta>
-      <select_unspecified>N</select_unspecified>
-    </fields>
-    <attributes/>
-    <GUI><xloc>496</xloc><yloc>96</yloc></GUI>
-  </transform>
-  <transform>
-    <name>Normalize Categories Part 2</name>
-    <type>SelectValues</type>
-    <description>Keep the item, category timestamp and integer category ID from part 2.</description>
-    <distribute>Y</distribute><custom_distribution/><copies>1</copies>
-    <partitioning><method>none</method><schema_name/></partitioning>
-    <fields>
-      <field><name>itemid</name><rename>item_id</rename><length>-2</length><precision>-2</precision></field>
-      <field><name>timestamp</name><rename>category_timestamp</rename><length>-2</length><precision>-2</precision></field>
-      <meta><name>value</name><rename>category_id</rename><type>Integer</type><length>-2</length><precision>-2</precision><conversion_mask/><date_format_lenient>false</date_format_lenient><date_format_locale/><date_format_timezone/><lenient_string_to_number>false</lenient_string_to_number><encoding/><decimal_symbol/><grouping_symbol/><currency_symbol/><storage_type>normal</storage_type></meta>
-      <select_unspecified>N</select_unspecified>
-    </fields>
-    <attributes/>
-    <GUI><xloc>496</xloc><yloc>288</yloc></GUI>
-  </transform>
-  <transform>
-    <name>Append Category Streams</name>
-    <type>Append</type>
-    <description>Combine normalized category records from both source files.</description>
-    <distribute>Y</distribute><custom_distribution/><copies>1</copies>
-    <partitioning><method>none</method><schema_name/></partitioning>
-    <head_name>Normalize Categories Part 2</head_name><tail_name>Normalize Categories Part 1</tail_name>
-    <attributes/>
-    <GUI><xloc>704</xloc><yloc>192</yloc></GUI>
+    <GUI>
+      <xloc>80</xloc>
+      <yloc>288</yloc>
+    </GUI>
   </transform>
   <transform>
     <name>Sort by Item and Latest Timestamp</name>
     <type>SortRows</type>
     <description>Sort each item's category history from newest to oldest.</description>
-    <distribute>Y</distribute><custom_distribution/><copies>1</copies>
-    <partitioning><method>none</method><schema_name/></partitioning>
-    <directory>${java.io.tmpdir}</directory><prefix>retailrocket_item_categories</prefix><sort_size>5000</sort_size><free_memory/><compress>N</compress><compress_variable/><unique_rows>N</unique_rows>
+    <distribute>Y</distribute>
+    <custom_distribution/>
+    <copies>1</copies>
+    <partitioning>
+      <method>none</method>
+      <schema_name/>
+    </partitioning>
+    <compress>N</compress>
+    <directory>${java.io.tmpdir}</directory>
     <fields>
-      <field><name>item_id</name><ascending>Y</ascending><case_sensitive>N</case_sensitive><collator_enabled>N</collator_enabled><collator_strength>0</collator_strength><presorted>N</presorted></field>
-      <field><name>category_timestamp</name><ascending>N</ascending><case_sensitive>N</case_sensitive><collator_enabled>N</collator_enabled><collator_strength>0</collator_strength><presorted>N</presorted></field>
+      <field>
+        <ascending>Y</ascending>
+        <case_sensitive>N</case_sensitive>
+        <collator_enabled>N</collator_enabled>
+        <collator_strength>0</collator_strength>
+          <name>itemid</name>
+        <presorted>N</presorted>
+      </field>
+      <field>
+        <ascending>N</ascending>
+        <case_sensitive>N</case_sensitive>
+        <collator_enabled>N</collator_enabled>
+        <collator_strength>0</collator_strength>
+          <name>timestamp</name>
+        <presorted>N</presorted>
+      </field>
     </fields>
+    <sort_size>5000</sort_size>
+    <unique_rows>N</unique_rows>
     <attributes/>
-    <GUI><xloc>912</xloc><yloc>192</yloc></GUI>
+    <GUI>
+      <xloc>912</xloc>
+      <yloc>192</yloc>
+    </GUI>
   </transform>
   <transform>
-    <name>Keep Latest Category per Item</name>
-    <type>Unique</type>
-    <description>Keep the first row per sorted item, which is its latest category assignment.</description>
-    <distribute>Y</distribute><custom_distribution/><copies>1</copies>
-    <partitioning><method>none</method><schema_name/></partitioning>
-    <count_rows>N</count_rows><count_field/><reject_duplicate_row>N</reject_duplicate_row><error_description/>
-    <fields><field><name>item_id</name><case_insensitive>N</case_insensitive></field></fields>
+    <name>Select Latest Category Fields</name>
+    <type>SelectValues</type>
+    <description>Keep and rename the final item-to-category staging fields after deduplication.</description>
+    <distribute>Y</distribute>
+    <custom_distribution/>
+    <copies>1</copies>
+    <partitioning>
+      <method>none</method>
+      <schema_name/>
+    </partitioning>
+    <fields>
+      <field>
+        <length>-2</length>
+        <name>itemid</name>
+        <precision>-2</precision>
+        <rename>item_id</rename>
+      </field>
+      <field>
+        <length>-2</length>
+        <name>value</name>
+        <precision>-2</precision>
+        <rename>category_id</rename>
+      </field>
+      <field>
+        <length>-2</length>
+        <name>timestamp</name>
+        <precision>-2</precision>
+        <rename>category_timestamp</rename>
+      </field>
+      <select_unspecified>N</select_unspecified>
+    </fields>
     <attributes/>
-    <GUI><xloc>1120</xloc><yloc>192</yloc></GUI>
+    <GUI>
+      <xloc>1328</xloc>
+      <yloc>96</yloc>
+    </GUI>
   </transform>
   <transform>
     <name>Write Latest Item Categories</name>
     <type>TextFileOutput</type>
     <description>Write the latest item-to-category mapping for the item dimension load.</description>
-    <distribute>Y</distribute><custom_distribution/><copies>1</copies>
-    <partitioning><method>none</method><schema_name/></partitioning>
-    <separator>,</separator><enclosure>"</enclosure><enclosure_forced>N</enclosure_forced><enclosure_fix_disabled>N</enclosure_fix_disabled><header>Y</header><footer>N</footer><format>DOS</format><compression>None</compression><encoding>UTF-8</encoding><endedLine/>
-    <fileNameInField>N</fileNameInField><fileNameField/><create_parent_folder>Y</create_parent_folder>
-    <file><name>${PROJECT_HOME}/data/staging/item_latest_category</name><servlet_output>N</servlet_output><do_not_open_new_file_init>N</do_not_open_new_file_init><extention>csv</extention><append>N</append><split>N</split><haspartno>N</haspartno><add_date>N</add_date><add_time>N</add_time><SpecifyFormat>N</SpecifyFormat><date_time_format/><add_to_result_filenames>Y</add_to_result_filenames><pad>N</pad><fast_dump>N</fast_dump><splitevery/></file>
+    <distribute>Y</distribute>
+    <custom_distribution/>
+    <copies>1</copies>
+    <partitioning>
+      <method>none</method>
+      <schema_name/>
+    </partitioning>
+    <schema_definition/>
+    <separator>,</separator>
+    <enclosure>"</enclosure>
+    <enclosure_forced>N</enclosure_forced>
+    <enclosure_fix_disabled>N</enclosure_fix_disabled>
+    <header>Y</header>
+    <footer>N</footer>
+    <format>DOS</format>
+    <compression>None</compression>
+    <encoding>UTF-8</encoding>
+    <endedLine/>
+    <fileNameInField>N</fileNameInField>
+    <fileNameField/>
+    <create_parent_folder>Y</create_parent_folder>
+    <file>
+      <name>${PROJECT_HOME}/data/staging/item_latest_category</name>
+      <servlet_output>N</servlet_output>
+      <do_not_open_new_file_init>N</do_not_open_new_file_init>
+      <extention>csv</extention>
+      <append>N</append>
+      <split>N</split>
+      <haspartno>N</haspartno>
+      <add_date>N</add_date>
+      <add_time>N</add_time>
+      <SpecifyFormat>N</SpecifyFormat>
+      <date_time_format/>
+      <add_to_result_filenames>Y</add_to_result_filenames>
+      <pad>N</pad>
+      <fast_dump>N</fast_dump>
+      <splitevery/>
+    </file>
     <fields>
-      <field><name>item_id</name><type>Integer</type><format/><currency/><decimal/><group/><nullif/><trim_type>both</trim_type><length>-1</length><precision>-1</precision></field>
-      <field><name>category_id</name><type>Integer</type><format/><currency/><decimal/><group/><nullif/><trim_type>both</trim_type><length>-1</length><precision>-1</precision></field>
-      <field><name>category_timestamp</name><type>Integer</type><format/><currency/><decimal/><group/><nullif/><trim_type>both</trim_type><length>-1</length><precision>-1</precision></field>
+      <field>
+        <name>item_id</name>
+        <type>Integer</type>
+        <format/>
+        <currency/>
+        <decimal/>
+        <group/>
+        <nullif/>
+        <trim_type>both</trim_type>
+        <roundingType>half_even</roundingType>
+        <length>-1</length>
+        <precision>-1</precision>
+      </field>
+      <field>
+        <name>category_id</name>
+        <type>Integer</type>
+        <format/>
+        <currency/>
+        <decimal/>
+        <group/>
+        <nullif/>
+        <trim_type>both</trim_type>
+        <roundingType>half_even</roundingType>
+        <length>-1</length>
+        <precision>-1</precision>
+      </field>
+      <field>
+        <name>category_timestamp</name>
+        <type>Integer</type>
+        <format/>
+        <currency/>
+        <decimal/>
+        <group/>
+        <nullif/>
+        <trim_type>both</trim_type>
+        <roundingType>half_even</roundingType>
+        <length>-1</length>
+        <precision>-1</precision>
+      </field>
     </fields>
     <attributes/>
-    <GUI><xloc>1328</xloc><yloc>192</yloc></GUI>
+    <GUI>
+      <xloc>1328</xloc>
+      <yloc>192</yloc>
+    </GUI>
   </transform>
   <transform_error_handling>
   </transform_error_handling>
