@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<workflow>
+  <name>run_retailrocket_dw</name>
+  <name_sync_with_filename>Y</name_sync_with_filename>
+  <description>Run the RetailRocket warehouse loads in dependency order.</description>
+  <extended_description>Loads category, date, event type, visitor and item dimensions before loading fact_events. Each pipeline action waits for successful completion. A failed action has no outgoing success hop, so the workflow stops before later dependent loads run. Child pipeline logs report read, written, updated, rejected and error counts.</extended_description>
+  <workflow_version/>
+  <created_user>-</created_user>
+  <created_date>2026/11/26 00:00:00.000</created_date>
+  <modified_user>-</modified_user>
+  <modified_date>2026/11/26 00:00:00.000</modified_date>
+  <parameters>
+  </parameters>
+  <actions>
+    <action>
+      <name>Start</name><description/><type>SPECIAL</type><attributes/>
+      <repeat>N</repeat><schedulerType>0</schedulerType><intervalSeconds>0</intervalSeconds><intervalMinutes>60</intervalMinutes><hour>12</hour><minutes>0</minutes><weekDay>1</weekDay><DayOfMonth>1</DayOfMonth>
+      <parallel>N</parallel><xloc>64</xloc><yloc>160</yloc><attributes_hac/>
+    </action>
+    <action>
+      <name>Log workflow start</name><description>Record the beginning of a warehouse load.</description><type>WRITE_TO_LOG</type><attributes/>
+      <logmessage>RetailRocket warehouse workflow started. Pipeline completion logs contain row counts and errors.</logmessage><loglevel>Basic</loglevel><logsubject>RetailRocket DW</logsubject>
+      <parallel>N</parallel><xloc>224</xloc><yloc>160</yloc><attributes_hac/>
+    </action>
+    <action>
+      <name>Load Category Dimension</name><description>Load dim_category before item category lookups.</description><type>PIPELINE</type><attributes/>
+      <filename>${PROJECT_HOME}/pipelines/load_dim_category.hpl</filename><params_from_previous>N</params_from_previous><exec_per_row>N</exec_per_row><clear_rows>N</clear_rows><clear_files>N</clear_files><set_logfile>N</set_logfile><logfile/><logext/><add_date>N</add_date><add_time>N</add_time><loglevel>Basic</loglevel><set_append_logfile>N</set_append_logfile><wait_until_finished>Y</wait_until_finished><create_parent_folder>N</create_parent_folder><run_configuration>local</run_configuration>
+      <parameters><pass_all_parameters>Y</pass_all_parameters></parameters>
+      <parallel>N</parallel><xloc>416</xloc><yloc>160</yloc><attributes_hac/>
+    </action>
+    <action>
+      <name>Load Date Dimension</name><description>Load dim_date from event timestamps.</description><type>PIPELINE</type><attributes/>
+      <filename>${PROJECT_HOME}/pipelines/load_dim_date.hpl</filename><params_from_previous>N</params_from_previous><exec_per_row>N</exec_per_row><clear_rows>N</clear_rows><clear_files>N</clear_files><set_logfile>N</set_logfile><logfile/><logext/><add_date>N</add_date><add_time>N</add_time><loglevel>Basic</loglevel><set_append_logfile>N</set_append_logfile><wait_until_finished>Y</wait_until_finished><create_parent_folder>N</create_parent_folder><run_configuration>local</run_configuration>
+      <parameters><pass_all_parameters>Y</pass_all_parameters></parameters>
+      <parallel>N</parallel><xloc>608</xloc><yloc>64</yloc><attributes_hac/>
+    </action>
+    <action>
+      <name>Load Event Type Dimension</name><description>Load the distinct event types.</description><type>PIPELINE</type><attributes/>
+      <filename>${PROJECT_HOME}/pipelines/load_dim_event_type.hpl</filename><params_from_previous>N</params_from_previous><exec_per_row>N</exec_per_row><clear_rows>N</clear_rows><clear_files>N</clear_files><set_logfile>N</set_logfile><logfile/><logext/><add_date>N</add_date><add_time>N</add_time><loglevel>Basic</loglevel><set_append_logfile>N</set_append_logfile><wait_until_finished>Y</wait_until_finished><create_parent_folder>N</create_parent_folder><run_configuration>local</run_configuration>
+      <parameters><pass_all_parameters>Y</pass_all_parameters></parameters>
+      <parallel>N</parallel><xloc>608</xloc><yloc>160</yloc><attributes_hac/>
+    </action>
+    <action>
+      <name>Load Visitor Dimension</name><description>Load distinct source visitor IDs.</description><type>PIPELINE</type><attributes/>
+      <filename>${PROJECT_HOME}/pipelines/load_dim_visitor.hpl</filename><params_from_previous>N</params_from_previous><exec_per_row>N</exec_per_row><clear_rows>N</clear_rows><clear_files>N</clear_files><set_logfile>N</set_logfile><logfile/><logext/><add_date>N</add_date><add_time>N</add_time><loglevel>Basic</loglevel><set_append_logfile>N</set_append_logfile><wait_until_finished>Y</wait_until_finished><create_parent_folder>N</create_parent_folder><run_configuration>local</run_configuration>
+      <parameters><pass_all_parameters>Y</pass_all_parameters></parameters>
+      <parallel>N</parallel><xloc>800</xloc><yloc>64</yloc><attributes_hac/>
+    </action>
+    <action>
+      <name>Stage Latest Item Categories</name><description>Prepare each item's latest category assignment.</description><type>PIPELINE</type><attributes/>
+      <filename>${PROJECT_HOME}/pipelines/stage_item_latest_category.hpl</filename><params_from_previous>N</params_from_previous><exec_per_row>N</exec_per_row><clear_rows>N</clear_rows><clear_files>N</clear_files><set_logfile>N</set_logfile><logfile/><logext/><add_date>N</add_date><add_time>N</add_time><loglevel>Basic</loglevel><set_append_logfile>N</set_append_logfile><wait_until_finished>Y</wait_until_finished><create_parent_folder>N</create_parent_folder><run_configuration>local</run_configuration>
+      <parameters><pass_all_parameters>Y</pass_all_parameters></parameters>
+      <parallel>N</parallel><xloc>800</xloc><yloc>160</yloc><attributes_hac/>
+    </action>
+    <action>
+      <name>Load Item Dimension</name><description>Load dim_item after its category staging has completed.</description><type>PIPELINE</type><attributes/>
+      <filename>${PROJECT_HOME}/pipelines/load_dim_item.hpl</filename><params_from_previous>N</params_from_previous><exec_per_row>N</exec_per_row><clear_rows>N</clear_rows><clear_files>N</clear_files><set_logfile>N</set_logfile><logfile/><logext/><add_date>N</add_date><add_time>N</add_time><loglevel>Basic</loglevel><set_append_logfile>N</set_append_logfile><wait_until_finished>Y</wait_until_finished><create_parent_folder>N</create_parent_folder><run_configuration>local</run_configuration>
+      <parameters><pass_all_parameters>Y</pass_all_parameters></parameters>
+      <parallel>N</parallel><xloc>992</xloc><yloc>160</yloc><attributes_hac/>
+    </action>
+    <action>
+      <name>Load Event Facts</name><description>Load fact_events after all referenced dimensions are ready.</description><type>PIPELINE</type><attributes/>
+      <filename>${PROJECT_HOME}/pipelines/load_fact_events.hpl</filename><params_from_previous>N</params_from_previous><exec_per_row>N</exec_per_row><clear_rows>N</clear_rows><clear_files>N</clear_files><set_logfile>N</set_logfile><logfile/><logext/><add_date>N</add_date><add_time>N</add_time><loglevel>Basic</loglevel><set_append_logfile>N</set_append_logfile><wait_until_finished>Y</wait_until_finished><create_parent_folder>N</create_parent_folder><run_configuration>local</run_configuration>
+      <parameters><pass_all_parameters>Y</pass_all_parameters></parameters>
+      <parallel>N</parallel><xloc>1184</xloc><yloc>160</yloc><attributes_hac/>
+    </action>
+    <action>
+      <name>Log workflow success</name><description>Record successful completion after the fact load.</description><type>WRITE_TO_LOG</type><attributes/>
+      <logmessage>RetailRocket warehouse workflow completed successfully.</logmessage><loglevel>Basic</loglevel><logsubject>RetailRocket DW</logsubject>
+      <parallel>N</parallel><xloc>1376</xloc><yloc>160</yloc><attributes_hac/>
+    </action>
+  </actions>
+  <hops>
+    <hop><from>Start</from><to>Log workflow start</to><enabled>Y</enabled><evaluation>Y</evaluation><unconditional>Y</unconditional></hop>
+    <hop><from>Log workflow start</from><to>Load Category Dimension</to><enabled>Y</enabled><evaluation>Y</evaluation><unconditional>N</unconditional></hop>
+    <hop><from>Load Category Dimension</from><to>Load Date Dimension</to><enabled>Y</enabled><evaluation>Y</evaluation><unconditional>N</unconditional></hop>
+    <hop><from>Load Date Dimension</from><to>Load Event Type Dimension</to><enabled>Y</enabled><evaluation>Y</evaluation><unconditional>N</unconditional></hop>
+    <hop><from>Load Event Type Dimension</from><to>Load Visitor Dimension</to><enabled>Y</enabled><evaluation>Y</evaluation><unconditional>N</unconditional></hop>
+    <hop><from>Load Visitor Dimension</from><to>Stage Latest Item Categories</to><enabled>Y</enabled><evaluation>Y</evaluation><unconditional>N</unconditional></hop>
+    <hop><from>Stage Latest Item Categories</from><to>Load Item Dimension</to><enabled>Y</enabled><evaluation>Y</evaluation><unconditional>N</unconditional></hop>
+    <hop><from>Load Item Dimension</from><to>Load Event Facts</to><enabled>Y</enabled><evaluation>Y</evaluation><unconditional>N</unconditional></hop>
+    <hop><from>Load Event Facts</from><to>Log workflow success</to><enabled>Y</enabled><evaluation>Y</evaluation><unconditional>N</unconditional></hop>
+  </hops>
+  <notepads>
+  </notepads>
+  <attributes/>
+</workflow>
