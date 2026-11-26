@@ -4,7 +4,7 @@
     <name>load_fact_events</name>
     <name_sync_with_filename>Y</name_sync_with_filename>
     <description>Load one fact row for every RetailRocket event.</description>
-    <extended_description>Reads events.csv, converts epoch milliseconds to a UTC event timestamp and date key, resolves date, visitor, item and event-type keys, and inserts the resulting rows into public.fact_events. Run only after all dimensions are complete, and only once against an empty fact table: the table has no stable source-event key for safe fact-row deduplication.</extended_description>
+    <extended_description>Reads events.csv, uses the CSV record ordinal as source_event_key, converts epoch milliseconds to a UTC event timestamp and date key, resolves date, visitor, item and event-type keys, and upserts public.fact_events by source_event_key. The key is stable for reruns as long as events.csv contents and row order do not change.</extended_description>
     <pipeline_version/>
     <pipeline_type>Normal</pipeline_type>
     <parameters>
@@ -20,41 +20,146 @@
   <notepads>
   </notepads>
   <order>
-    <hop><from>CSV Event Rows</from><to>Derive Event Date and Measures</to><enabled>Y</enabled></hop>
-    <hop><from>Derive Event Date and Measures</from><to>Rename Source Fields</to><enabled>Y</enabled></hop>
-    <hop><from>Rename Source Fields</from><to>Lookup Date Key</to><enabled>Y</enabled></hop>
-    <hop><from>Lookup Date Key</from><to>Lookup Visitor Key</to><enabled>Y</enabled></hop>
-    <hop><from>Lookup Visitor Key</from><to>Lookup Item Key</to><enabled>Y</enabled></hop>
-    <hop><from>Lookup Item Key</from><to>Lookup Event Type Key</to><enabled>Y</enabled></hop>
-    <hop><from>Lookup Event Type Key</from><to>Select Fact Fields</to><enabled>Y</enabled></hop>
-    <hop><from>Select Fact Fields</from><to>Insert Fact Events</to><enabled>Y</enabled></hop>
+    <hop>
+      <from>CSV Event Rows</from>
+      <to>Derive Event Date and Measures</to>
+      <enabled>Y</enabled>
+    </hop>
+    <hop>
+      <from>Derive Event Date and Measures</from>
+      <to>Rename Source Fields</to>
+      <enabled>Y</enabled>
+    </hop>
+    <hop>
+      <from>Rename Source Fields</from>
+      <to>Lookup Date Key</to>
+      <enabled>Y</enabled>
+    </hop>
+    <hop>
+      <from>Lookup Date Key</from>
+      <to>Lookup Visitor Key</to>
+      <enabled>Y</enabled>
+    </hop>
+    <hop>
+      <from>Lookup Visitor Key</from>
+      <to>Lookup Item Key</to>
+      <enabled>Y</enabled>
+    </hop>
+    <hop>
+      <from>Lookup Item Key</from>
+      <to>Lookup Event Type Key</to>
+      <enabled>Y</enabled>
+    </hop>
+    <hop>
+      <from>Lookup Event Type Key</from>
+      <to>Select Fact Fields</to>
+      <enabled>Y</enabled>
+    </hop>
+    <hop>
+      <from>Select Fact Fields</from>
+      <to>Upsert Fact Events</to>
+      <enabled>Y</enabled>
+    </hop>
   </order>
   <transform>
     <name>CSV Event Rows</name>
     <type>CSVInput</type>
-    <description>Read the event grain and nullable transaction ID from events.csv.</description>
-    <distribute>Y</distribute><custom_distribution/><copies>1</copies>
-    <partitioning><method>none</method><schema_name/></partitioning>
+    <description>Read each event and its stable data-row ordinal, plus nullable transaction ID.</description>
+    <distribute>Y</distribute>
+    <custom_distribution/>
+    <copies>1</copies>
+    <partitioning>
+      <method>none</method>
+      <schema_name/>
+    </partitioning>
     <filename>${PROJECT_HOME}/data/events.csv</filename>
-    <filename_field/><rownum_field/><include_filename>N</include_filename>
-    <separator>,</separator><enclosure>"</enclosure><header>Y</header><buffer_size>50000</buffer_size><schemaDefinition/>
-    <lazy_conversion>N</lazy_conversion><add_filename_result>N</add_filename_result><parallel>N</parallel><newline_possible>N</newline_possible><encoding>UTF-8</encoding>
+    <filename_field/>
+    <rownum_field>source_event_key</rownum_field>
+    <include_filename>N</include_filename>
+    <separator>,</separator>
+    <enclosure>"</enclosure>
+    <header>Y</header>
+    <buffer_size>50000</buffer_size>
+    <schemaDefinition/>
+    <lazy_conversion>N</lazy_conversion>
+    <add_filename_result>N</add_filename_result>
+    <parallel>N</parallel>
+    <newline_possible>N</newline_possible>
+    <encoding>UTF-8</encoding>
     <fields>
-      <field><name>timestamp</name><type>Integer</type><format/><currency/><decimal>.</decimal><group>,</group><length>-1</length><precision>-1</precision><trim_type>both</trim_type></field>
-      <field><name>visitorid</name><type>Integer</type><format/><currency/><decimal>.</decimal><group>,</group><length>-1</length><precision>-1</precision><trim_type>both</trim_type></field>
-      <field><name>event</name><type>String</type><format/><currency/><decimal>.</decimal><group>,</group><length>-1</length><precision>-1</precision><trim_type>both</trim_type></field>
-      <field><name>itemid</name><type>Integer</type><format/><currency/><decimal>.</decimal><group>,</group><length>-1</length><precision>-1</precision><trim_type>both</trim_type></field>
-      <field><name>transactionid</name><type>Integer</type><format/><currency/><decimal>.</decimal><group>,</group><length>-1</length><precision>-1</precision><trim_type>both</trim_type></field>
+      <field>
+        <name>timestamp</name>
+        <type>Integer</type>
+        <format/>
+        <currency/>
+        <decimal>.</decimal>
+        <group>,</group>
+        <length>-1</length>
+        <precision>-1</precision>
+        <trim_type>both</trim_type>
+      </field>
+      <field>
+        <name>visitorid</name>
+        <type>Integer</type>
+        <format/>
+        <currency/>
+        <decimal>.</decimal>
+        <group>,</group>
+        <length>-1</length>
+        <precision>-1</precision>
+        <trim_type>both</trim_type>
+      </field>
+      <field>
+        <name>event</name>
+        <type>String</type>
+        <format/>
+        <currency/>
+        <decimal>.</decimal>
+        <group>,</group>
+        <length>-1</length>
+        <precision>-1</precision>
+        <trim_type>both</trim_type>
+      </field>
+      <field>
+        <name>itemid</name>
+        <type>Integer</type>
+        <format/>
+        <currency/>
+        <decimal>.</decimal>
+        <group>,</group>
+        <length>-1</length>
+        <precision>-1</precision>
+        <trim_type>both</trim_type>
+      </field>
+      <field>
+        <name>transactionid</name>
+        <type>Integer</type>
+        <format/>
+        <currency/>
+        <decimal>.</decimal>
+        <group>,</group>
+        <length>-1</length>
+        <precision>-1</precision>
+        <trim_type>both</trim_type>
+      </field>
     </fields>
     <attributes/>
-    <GUI><xloc>96</xloc><yloc>160</yloc></GUI>
+    <GUI>
+      <xloc>96</xloc>
+      <yloc>160</yloc>
+    </GUI>
   </transform>
   <transform>
     <name>Derive Event Date and Measures</name>
     <type>ScriptValueMod</type>
     <description>Derive the exact event timestamp, UTC date key and additive event count.</description>
-    <distribute>Y</distribute><custom_distribution/><copies>1</copies>
-    <partitioning><method>none</method><schema_name/></partitioning>
+    <distribute>Y</distribute>
+    <custom_distribution/>
+    <copies>1</copies>
+    <partitioning>
+      <method>none</method>
+      <schema_name/>
+    </partitioning>
     <optimizationLevel>9</optimizationLevel>
     <jsScripts>
       <jsScript>
@@ -67,138 +172,394 @@ var event_count = 1;</jsScript_script>
       </jsScript>
     </jsScripts>
     <fields>
-      <field><name>event_timestamp</name><rename>event_timestamp</rename><type>Date</type><length>-1</length><precision>-1</precision><replace>N</replace></field>
-      <field><name>date_key</name><rename>date_key</rename><type>Integer</type><length>-1</length><precision>-1</precision><replace>N</replace></field>
-      <field><name>event_count</name><rename>event_count</rename><type>Integer</type><length>-1</length><precision>-1</precision><replace>N</replace></field>
+      <field>
+        <name>event_timestamp</name>
+        <rename>event_timestamp</rename>
+        <type>Date</type>
+        <length>-1</length>
+        <precision>-1</precision>
+        <replace>N</replace>
+      </field>
+      <field>
+        <name>date_key</name>
+        <rename>date_key</rename>
+        <type>Integer</type>
+        <length>-1</length>
+        <precision>-1</precision>
+        <replace>N</replace>
+      </field>
+      <field>
+        <name>event_count</name>
+        <rename>event_count</rename>
+        <type>Integer</type>
+        <length>-1</length>
+        <precision>-1</precision>
+        <replace>N</replace>
+      </field>
     </fields>
     <attributes/>
-    <GUI><xloc>288</xloc><yloc>160</yloc></GUI>
-  </transform>
-  <transform>
-    <name>Rename Source Fields</name>
-    <type>SelectValues</type>
-    <description>Rename source identifiers to the warehouse natural-key names.</description>
-    <distribute>Y</distribute><custom_distribution/><copies>1</copies>
-    <partitioning><method>none</method><schema_name/></partitioning>
-    <fields>
-      <field><name>date_key</name><rename>date_key</rename><length>-2</length><precision>-2</precision></field>
-      <field><name>event_timestamp</name><rename>event_timestamp</rename><length>-2</length><precision>-2</precision></field>
-      <field><name>event_count</name><rename>event_count</rename><length>-2</length><precision>-2</precision></field>
-      <field><name>visitorid</name><rename>visitor_id</rename><length>-2</length><precision>-2</precision></field>
-      <field><name>event</name><rename>event_type</rename><length>-2</length><precision>-2</precision></field>
-      <field><name>itemid</name><rename>item_id</rename><length>-2</length><precision>-2</precision></field>
-      <field><name>transactionid</name><rename>transaction_id</rename><length>-2</length><precision>-2</precision></field>
-      <select_unspecified>N</select_unspecified>
-    </fields>
-    <attributes/>
-    <GUI><xloc>480</xloc><yloc>160</yloc></GUI>
+    <GUI>
+      <xloc>288</xloc>
+      <yloc>160</yloc>
+    </GUI>
   </transform>
   <transform>
     <name>Lookup Date Key</name>
     <type>DBLookup</type>
     <description>Validate the derived date key against dim_date.</description>
-    <distribute>Y</distribute><custom_distribution/><copies>1</copies>
-    <partitioning><method>none</method><schema_name/></partitioning>
-    <cache_size>100</cache_size><cache>Y</cache><connection>retailrocket_dw_conn</connection><cache_load_all>Y</cache_load_all>
+    <distribute>Y</distribute>
+    <custom_distribution/>
+    <copies>1</copies>
+    <partitioning>
+      <method>none</method>
+      <schema_name/>
+    </partitioning>
+    <cache>Y</cache>
+    <cache_load_all>Y</cache_load_all>
+    <cache_size>100</cache_size>
+    <connection>retailrocket_dw_conn</connection>
     <lookup>
-      <eat_row_on_failure>N</eat_row_on_failure><fail_on_multiple>Y</fail_on_multiple>
-      <schema>public</schema><table>dim_date</table>
-      <key><condition>=</condition><name>date_key</name><field>date_key</field></key>
-      <value><type>Integer</type><rename>date_key_lookup</rename><name>date_key</name><trim_type>both</trim_type></value>
+      <eat_row_on_failure>N</eat_row_on_failure>
+      <fail_on_multiple>Y</fail_on_multiple>
+      <key>
+        <condition>=</condition>
+        <field>date_key</field>
+        <name>date_key</name>
+      </key>
+      <schema>public</schema>
+      <table>dim_date</table>
+      <value>
+        <name>date_key</name>
+        <rename>date_key_lookup</rename>
+        <trim_type>both</trim_type>
+        <type>Integer</type>
+      </value>
     </lookup>
     <attributes/>
-    <GUI><xloc>672</xloc><yloc>160</yloc></GUI>
-  </transform>
-  <transform>
-    <name>Lookup Visitor Key</name>
-    <type>DBLookup</type>
-    <description>Resolve visitor_id to its generated visitor_key.</description>
-    <distribute>Y</distribute><custom_distribution/><copies>1</copies>
-    <partitioning><method>none</method><schema_name/></partitioning>
-    <cache_size>1500000</cache_size><cache>Y</cache><connection>retailrocket_dw_conn</connection><cache_load_all>Y</cache_load_all>
-    <lookup>
-      <eat_row_on_failure>N</eat_row_on_failure><fail_on_multiple>Y</fail_on_multiple>
-      <schema>public</schema><table>dim_visitor</table>
-      <key><condition>=</condition><name>visitor_id</name><field>visitor_id</field></key>
-      <value><type>Integer</type><rename>visitor_key</rename><name>visitor_key</name><trim_type>both</trim_type></value>
-    </lookup>
-    <attributes/>
-    <GUI><xloc>864</xloc><yloc>160</yloc></GUI>
-  </transform>
-  <transform>
-    <name>Lookup Item Key</name>
-    <type>DBLookup</type>
-    <description>Resolve item_id to its generated item_key.</description>
-    <distribute>Y</distribute><custom_distribution/><copies>1</copies>
-    <partitioning><method>none</method><schema_name/></partitioning>
-    <cache_size>300000</cache_size><cache>Y</cache><connection>retailrocket_dw_conn</connection><cache_load_all>Y</cache_load_all>
-    <lookup>
-      <eat_row_on_failure>N</eat_row_on_failure><fail_on_multiple>Y</fail_on_multiple>
-      <schema>public</schema><table>dim_item</table>
-      <key><condition>=</condition><name>item_id</name><field>item_id</field></key>
-      <value><type>Integer</type><rename>item_key</rename><name>item_key</name><trim_type>both</trim_type></value>
-    </lookup>
-    <attributes/>
-    <GUI><xloc>1056</xloc><yloc>160</yloc></GUI>
+    <GUI>
+      <xloc>672</xloc>
+      <yloc>160</yloc>
+    </GUI>
   </transform>
   <transform>
     <name>Lookup Event Type Key</name>
     <type>DBLookup</type>
     <description>Resolve event_type to its generated event_type_key.</description>
-    <distribute>Y</distribute><custom_distribution/><copies>1</copies>
-    <partitioning><method>none</method><schema_name/></partitioning>
-    <cache_size>10</cache_size><cache>Y</cache><connection>retailrocket_dw_conn</connection><cache_load_all>Y</cache_load_all>
+    <distribute>Y</distribute>
+    <custom_distribution/>
+    <copies>1</copies>
+    <partitioning>
+      <method>none</method>
+      <schema_name/>
+    </partitioning>
+    <cache>Y</cache>
+    <cache_load_all>Y</cache_load_all>
+    <cache_size>10</cache_size>
+    <connection>retailrocket_dw_conn</connection>
     <lookup>
-      <eat_row_on_failure>N</eat_row_on_failure><fail_on_multiple>Y</fail_on_multiple>
-      <schema>public</schema><table>dim_event_type</table>
-      <key><condition>=</condition><name>event_type</name><field>event_type</field></key>
-      <value><type>Integer</type><rename>event_type_key</rename><name>event_type_key</name><trim_type>both</trim_type></value>
+      <eat_row_on_failure>N</eat_row_on_failure>
+      <fail_on_multiple>Y</fail_on_multiple>
+      <key>
+        <condition>=</condition>
+        <field>event_type</field>
+        <name>event_type</name>
+      </key>
+      <schema>public</schema>
+      <table>dim_event_type</table>
+      <value>
+        <name>event_type_key</name>
+        <rename>event_type_key</rename>
+        <trim_type>both</trim_type>
+        <type>Integer</type>
+      </value>
     </lookup>
     <attributes/>
-    <GUI><xloc>1248</xloc><yloc>160</yloc></GUI>
+    <GUI>
+      <xloc>1248</xloc>
+      <yloc>160</yloc>
+    </GUI>
+  </transform>
+  <transform>
+    <name>Lookup Item Key</name>
+    <type>DBLookup</type>
+    <description>Resolve item_id to its generated item_key.</description>
+    <distribute>Y</distribute>
+    <custom_distribution/>
+    <copies>1</copies>
+    <partitioning>
+      <method>none</method>
+      <schema_name/>
+    </partitioning>
+    <cache>Y</cache>
+    <cache_load_all>Y</cache_load_all>
+    <cache_size>300000</cache_size>
+    <connection>retailrocket_dw_conn</connection>
+    <lookup>
+      <eat_row_on_failure>N</eat_row_on_failure>
+      <fail_on_multiple>Y</fail_on_multiple>
+      <key>
+        <condition>=</condition>
+        <field>item_id</field>
+        <name>item_id</name>
+      </key>
+      <schema>public</schema>
+      <table>dim_item</table>
+      <value>
+        <name>item_key</name>
+        <rename>item_key</rename>
+        <trim_type>both</trim_type>
+        <type>Integer</type>
+      </value>
+    </lookup>
+    <attributes/>
+    <GUI>
+      <xloc>1056</xloc>
+      <yloc>160</yloc>
+    </GUI>
+  </transform>
+  <transform>
+    <name>Lookup Visitor Key</name>
+    <type>DBLookup</type>
+    <description>Resolve visitor_id to its generated visitor_key.</description>
+    <distribute>Y</distribute>
+    <custom_distribution/>
+    <copies>1</copies>
+    <partitioning>
+      <method>none</method>
+      <schema_name/>
+    </partitioning>
+    <cache>Y</cache>
+    <cache_load_all>N</cache_load_all>
+    <cache_size>1500000</cache_size>
+    <connection>retailrocket_dw_conn</connection>
+    <lookup>
+      <eat_row_on_failure>N</eat_row_on_failure>
+      <fail_on_multiple>Y</fail_on_multiple>
+      <key>
+        <condition>=</condition>
+        <field>visitor_id</field>
+        <name>visitor_id</name>
+      </key>
+      <schema>public</schema>
+      <table>dim_visitor</table>
+      <value>
+        <name>visitor_key</name>
+        <rename>visitor_key</rename>
+        <trim_type>both</trim_type>
+        <type>Integer</type>
+      </value>
+    </lookup>
+    <attributes/>
+    <GUI>
+      <xloc>864</xloc>
+      <yloc>160</yloc>
+    </GUI>
+  </transform>
+  <transform>
+    <name>Rename Source Fields</name>
+    <type>SelectValues</type>
+    <description>Rename source identifiers to the warehouse natural-key names.</description>
+    <distribute>Y</distribute>
+    <custom_distribution/>
+    <copies>1</copies>
+    <partitioning>
+      <method>none</method>
+      <schema_name/>
+    </partitioning>
+    <fields>
+      <field>
+        <length>-2</length>
+        <name>date_key</name>
+        <precision>-2</precision>
+        <rename>date_key</rename>
+      </field>
+      <field>
+        <length>-2</length>
+        <name>event_timestamp</name>
+        <precision>-2</precision>
+        <rename>event_timestamp</rename>
+      </field>
+      <field>
+        <length>-2</length>
+        <name>event_count</name>
+        <precision>-2</precision>
+        <rename>event_count</rename>
+      </field>
+      <field>
+        <length>-2</length>
+        <name>source_event_key</name>
+        <precision>-2</precision>
+        <rename>source_event_key</rename>
+      </field>
+      <field>
+        <length>-2</length>
+        <name>visitorid</name>
+        <precision>-2</precision>
+        <rename>visitor_id</rename>
+      </field>
+      <field>
+        <length>-2</length>
+        <name>event</name>
+        <precision>-2</precision>
+        <rename>event_type</rename>
+      </field>
+      <field>
+        <length>-2</length>
+        <name>itemid</name>
+        <precision>-2</precision>
+        <rename>item_id</rename>
+      </field>
+      <field>
+        <length>-2</length>
+        <name>transactionid</name>
+        <precision>-2</precision>
+        <rename>transaction_id</rename>
+      </field>
+      <select_unspecified>N</select_unspecified>
+    </fields>
+    <attributes/>
+    <GUI>
+      <xloc>480</xloc>
+      <yloc>160</yloc>
+    </GUI>
   </transform>
   <transform>
     <name>Select Fact Fields</name>
     <type>SelectValues</type>
     <description>Keep only fact foreign keys, timestamp, nullable transaction ID and event measure.</description>
-    <distribute>Y</distribute><custom_distribution/><copies>1</copies>
-    <partitioning><method>none</method><schema_name/></partitioning>
+    <distribute>Y</distribute>
+    <custom_distribution/>
+    <copies>1</copies>
+    <partitioning>
+      <method>none</method>
+      <schema_name/>
+    </partitioning>
     <fields>
-      <field><name>date_key_lookup</name><rename>date_key</rename><length>-2</length><precision>-2</precision></field>
-      <field><name>visitor_key</name><rename>visitor_key</rename><length>-2</length><precision>-2</precision></field>
-      <field><name>item_key</name><rename>item_key</rename><length>-2</length><precision>-2</precision></field>
-      <field><name>event_type_key</name><rename>event_type_key</rename><length>-2</length><precision>-2</precision></field>
-      <field><name>event_timestamp</name><rename>event_timestamp</rename><length>-2</length><precision>-2</precision></field>
-      <field><name>transaction_id</name><rename>transaction_id</rename><length>-2</length><precision>-2</precision></field>
-      <field><name>event_count</name><rename>event_count</rename><length>-2</length><precision>-2</precision></field>
+      <field>
+        <length>-2</length>
+        <name>date_key_lookup</name>
+        <precision>-2</precision>
+        <rename>date_key</rename>
+      </field>
+      <field>
+        <length>-2</length>
+        <name>source_event_key</name>
+        <precision>-2</precision>
+        <rename>source_event_key</rename>
+      </field>
+      <field>
+        <length>-2</length>
+        <name>visitor_key</name>
+        <precision>-2</precision>
+        <rename>visitor_key</rename>
+      </field>
+      <field>
+        <length>-2</length>
+        <name>item_key</name>
+        <precision>-2</precision>
+        <rename>item_key</rename>
+      </field>
+      <field>
+        <length>-2</length>
+        <name>event_type_key</name>
+        <precision>-2</precision>
+        <rename>event_type_key</rename>
+      </field>
+      <field>
+        <length>-2</length>
+        <name>event_timestamp</name>
+        <precision>-2</precision>
+        <rename>event_timestamp</rename>
+      </field>
+      <field>
+        <length>-2</length>
+        <name>transaction_id</name>
+        <precision>-2</precision>
+        <rename>transaction_id</rename>
+      </field>
+      <field>
+        <length>-2</length>
+        <name>event_count</name>
+        <precision>-2</precision>
+        <rename>event_count</rename>
+      </field>
       <select_unspecified>N</select_unspecified>
     </fields>
     <attributes/>
-    <GUI><xloc>1440</xloc><yloc>160</yloc></GUI>
+    <GUI>
+      <xloc>1440</xloc>
+      <yloc>160</yloc>
+    </GUI>
   </transform>
   <transform>
-    <name>Insert Fact Events</name>
-    <type>TableOutput</type>
-    <description>Append one row per source event; do not truncate the fact table.</description>
-    <distribute>Y</distribute><custom_distribution/><copies>1</copies>
-    <partitioning><method>none</method><schema_name/></partitioning>
+    <name>Upsert Fact Events</name>
+    <type>InsertUpdate</type>
+    <description>Insert new source events or update an existing event matched by its stable source row key.</description>
+    <distribute>Y</distribute>
+    <custom_distribution/>
+    <copies>1</copies>
+    <partitioning>
+      <method>none</method>
+      <schema_name/>
+    </partitioning>
     <commit>1000</commit>
     <connection>retailrocket_dw_conn</connection>
-    <schema>public</schema>
-    <fields/>
-    <ignore_errors>N</ignore_errors>
-    <partitioning_daily>N</partitioning_daily>
-    <partitioning_enabled>N</partitioning_enabled>
-    <partitioning_monthly>Y</partitioning_monthly>
-    <return_keys>N</return_keys>
-    <specify_fields>N</specify_fields>
-    <table>fact_events</table>
-    <tablename_in_field>N</tablename_in_field>
-    <tablename_in_table>Y</tablename_in_table>
-    <truncate>N</truncate>
-    <use_batch>Y</use_batch>
+    <lookup>
+      <key>
+        <condition>=</condition>
+        <field>source_event_key</field>
+        <name>source_event_key</name>
+        <name2/>
+      </key>
+      <schema>public</schema>
+      <table>fact_events</table>
+      <value>
+        <name>source_event_key</name>
+        <rename>source_event_key</rename>
+        <update>N</update>
+      </value>
+      <value>
+        <name>date_key</name>
+        <rename>date_key</rename>
+        <update>Y</update>
+      </value>
+      <value>
+        <name>visitor_key</name>
+        <rename>visitor_key</rename>
+        <update>Y</update>
+      </value>
+      <value>
+        <name>item_key</name>
+        <rename>item_key</rename>
+        <update>Y</update>
+      </value>
+      <value>
+        <name>event_type_key</name>
+        <rename>event_type_key</rename>
+        <update>Y</update>
+      </value>
+      <value>
+        <name>event_timestamp</name>
+        <rename>event_timestamp</rename>
+        <update>Y</update>
+      </value>
+      <value>
+        <name>transaction_id</name>
+        <rename>transaction_id</rename>
+        <update>Y</update>
+      </value>
+      <value>
+        <name>event_count</name>
+        <rename>event_count</rename>
+        <update>Y</update>
+      </value>
+    </lookup>
+    <update_bypassed>N</update_bypassed>
     <attributes/>
-    <GUI><xloc>1632</xloc><yloc>160</yloc></GUI>
+    <GUI>
+      <xloc>1632</xloc>
+      <yloc>160</yloc>
+    </GUI>
   </transform>
   <transform_error_handling>
   </transform_error_handling>

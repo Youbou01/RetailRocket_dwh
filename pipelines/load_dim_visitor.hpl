@@ -44,7 +44,7 @@
   <transform>
     <name>CSV Visitor IDs</name>
     <type>CSVInput</type>
-    <description>Read visitorid from events.csv as a 64-bit integer.</description>
+    <description>Read timestamp and visitorid so the positional CSV parser reaches visitorid.</description>
     <distribute>Y</distribute>
     <custom_distribution/>
     <copies>1</copies>
@@ -67,6 +67,17 @@
     <newline_possible>N</newline_possible>
     <encoding>UTF-8</encoding>
     <fields>
+      <field>
+        <name>timestamp</name>
+        <type>Integer</type>
+        <format/>
+        <currency/>
+        <decimal>.</decimal>
+        <group>,</group>
+        <length>-1</length>
+        <precision>-1</precision>
+        <trim_type>both</trim_type>
+      </field>
       <field>
         <name>visitorid</name>
         <type>Integer</type>
